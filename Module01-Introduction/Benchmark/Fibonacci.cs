@@ -3,22 +3,15 @@ using BenchmarkDotNet.Attributes;
 
 namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
 {
+    [MemoryDiagnoser]
     [DisassemblyDiagnoser(exportCombinedDisassemblyReport: true)]
     public class FibonacciCalc
     {
-        // HOMEWORK:
-        // 1. Write implementations for RecursiveWithMemoization and Iterative solutions
-        // 2. Add MemoryDiagnoser to the benchmark
-        // 3. Run with release configuration and compare results
-        // 4. Open disassembler report and compare machine code
-        // 
-        // You can use the discussion panel to compare your results with other students
-
         [Benchmark(Baseline = true)]
         [ArgumentsSource(nameof(Data))]
         public ulong Recursive(ulong n)
         {
-            if (n == 1 || n == 2) return 1;
+            if (n <= 1) return n;
             return Recursive(n - 2) + Recursive(n - 1);
         }
 
@@ -26,20 +19,39 @@ namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
         [ArgumentsSource(nameof(Data))]
         public ulong RecursiveWithMemoization(ulong n)
         {
-            return 0;
+            if (n <= 1) return n;
+
+            var cache = new Dictionary<ulong, ulong>();
+            if (cache.ContainsKey(n))
+            {
+                return cache[n];
+            }
+
+            cache[n] = RecursiveWithMemoization(n - 1) + RecursiveWithMemoization(n - 2);
+            return cache[n];
         }
-        
+
         [Benchmark]
         [ArgumentsSource(nameof(Data))]
         public ulong Iterative(ulong n)
         {
-            return 0;
+            if (n <= 1) return n;
+            ulong next, back1 = 1, back2 = 0;
+
+            for (ulong i = 2; i < n; i++)
+            {
+                next = back1 + back2;
+                back2 = back1;
+                back1 = next;
+            }
+
+            return back1 + back2;
         }
 
         public IEnumerable<ulong> Data()
         {
-            yield return 15;
-            yield return 35;
+            yield return 10;
+            yield return 100;
         }
     }
 }

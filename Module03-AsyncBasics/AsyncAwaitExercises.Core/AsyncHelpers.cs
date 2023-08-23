@@ -9,21 +9,33 @@ namespace AsyncAwaitExercises.Core
     {
         public static async Task<string> GetStringWithRetries(HttpClient client, string url, int maxTries = 3, CancellationToken token = default)
         {
-            // Create a method that will try to get a response from a given `url`, retrying `maxTries` number of times.
-            // It should wait one second before the second try, and double the wait time before every successive retry
-            // (so pauses before retries will be 1, 2, 4, 8, ... seconds).
-            // * `maxTries` must be at least 2
-            // * we retry if:
-            //    * we get non-successful status code (outside of 200-299 range), or
-            //    * HTTP call thrown an exception (like network connectivity or DNS issue)
-            // * token should be able to cancel both HTTP call and the retry delay
-            // * if all retries fails, the method should throw the exception of the last try
-            // HINTS:
-            // * `HttpClient.GetStringAsync` does not accept cancellation token (use `GetAsync` instead)
-            // * you may use `EnsureSuccessStatusCode()` method
+            if (maxTries < 2)
+                throw new ArgumentException($"{nameof(maxTries)} must be at least 2");
 
-            return string.Empty;
+            TimeSpan nextDelay = TimeSpan.FromSeconds(1);
+
+            for (int i = 0; i < maxTries - 1; i++)
+            {
+                try
+                {
+                    return await GetResponseAsync(client, url, token);
+                }
+                catch
+                {
+                    await Task.Delay(nextDelay, token);
+                    nextDelay *= 2;
+                }
+            }
+
+            await Task.Delay(nextDelay, token);
+            return await GetResponseAsync(client, url, token);
         }
 
+        static async Task<string> GetResponseAsync(HttpClient client, string url, CancellationToken token)
+        {
+            var response = await client.GetAsync(url, token);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
     }
 }
